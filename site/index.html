@@ -2,21 +2,108 @@
 <html lang="zh-Hans">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="天气">
 <meta name="theme-color" content="#4A90D9">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
 <title>天气</title>
 <style>
-  body { font-family: system-ui, sans-serif; text-align:center; padding:30vh 6vw;
-         background: linear-gradient(180deg,#7ec8f7,#b8e0fb); color:#0b3a5f; }
-  h1 { font-size:8vw; }
-  p { font-size:5vw; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family: "PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background: linear-gradient(180deg,#7ec8f7 0%,#b8e0fb 45%,#fdf6e3 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100vh; overflow:hidden; user-select:none; -webkit-user-select:none;
+  }
+  .date { font-size:9vw; font-weight:800; color:#0b3a5f; letter-spacing:1px; margin-bottom:4vh; }
+  .speaker {
+    width:60vw; height:60vw; max-width:320px; max-height:320px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffd76a, #ff9d2e 70%, #f78b1f);
+    box-shadow:0 12px 40px rgba(230,120,20,.45), inset 0 -8px 18px rgba(180,80,0,.35);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; border:none; outline:none;
+    transition:transform .12s ease;
+    position:relative;
+  }
+  .speaker:active { transform:scale(.93); }
+  .speaker .wave {
+    position:absolute; width:100%; height:100%; border-radius:50%;
+    border:4px solid rgba(255,255,255,.55); opacity:0;
+  }
+  .speaker.playing .wave { animation:ripple 1.6s ease-out infinite; }
+  .speaker.playing .wave:nth-child(2){ animation-delay:.55s; }
+  @keyframes ripple { 0%{transform:scale(1);opacity:.8;} 100%{transform:scale(1.45);opacity:0;} }
+  svg { width:38%; height:38%; fill:#fff; filter:drop-shadow(0 3px 4px rgba(150,60,0,.35)); }
+  .hint { margin-top:6vh; font-size:4.5vw; color:#2a5c86; opacity:.85; }
+  .summary { margin-top:2vh; font-size:4vw; color:#174a6e; text-align:center; padding:0 8vw; }
+  #fallback { display:none; margin-top:3vh; width:80vw; }
+  .err { margin-top:3vh; font-size:4vw; color:#a33; }
 </style>
 </head>
 <body>
-  <h1>🌤️ 天气</h1>
-  <p>今仔日的播报 8 点后才有</p>
-  <p style="font-size:3.5vw;opacity:.7;margin-top:6vh;">系统准备中…</p>
+  <div class="date" id="date">——</div>
+
+  <button class="speaker" id="btn" aria-label="播放" onclick="tryPlay()">
+    <span class="wave"></span>
+    <span class="wave"></span>
+    <svg viewBox="0 0 24 24">
+      <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+      <path d="M16 8a5 5 0 0 1 0 8" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M18.5 5.5a9 9 0 0 1 0 13" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <div class="hint">点这里，听天气</div>
+  <div class="summary" id="summary"></div>
+  <audio id="au" preload="auto"></audio>
+  <audio controls id="fallback"></audio>
+  <div class="err" id="err"></div>
+
+<script>
+var au = document.getElementById('au');
+var btn = document.getElementById('btn');
+
+// 加载当天音频（latest.json 带时间戳防缓存）
+function load() {
+  fetch('latest.json?_=' + Date.now()).then(function(r){ return r.json(); }).then(function(j){
+    document.getElementById('date').textContent = j.summary.split('崇武')[0].trim();
+    document.getElementById('summary').textContent = j.summary;
+    au.src = j.audio + '?_=' + Date.now();
+  }).catch(function(e){
+    document.getElementById('err').textContent = '加载失败，请检查网络后点喇叭重试';
+  });
+}
+
+function doPlay() {
+  au.play().then(function(){
+    btn.classList.add('playing');
+  }).catch(function(){
+    // 自动播放被拦：显示原生控件兜底
+    var fb = document.getElementById('fallback');
+    fb.src = au.src; fb.style.display = 'block'; fb.play();
+  });
+}
+function tryPlay(){ doPlay(); }
+
+// 1) 微信内置浏览器
+document.addEventListener('WeixinJSBridgeReady', function(){ tryPlay(); }, false);
+// 2) 首次触摸/点击（桌面图标打开也常被自动播放拦截，点一下即播）
+document.addEventListener('touchstart', function once(){
+  tryPlay();
+}, { once:true });
+document.addEventListener('click', function once(){
+  tryPlay();
+}, { once:true });
+
+// 自动播放尝试（部分浏览器允许）
+setTimeout(function(){ tryPlay(); }, 800);
+
+load();
+</script>
 </body>
 </html>

@@ -19,14 +19,16 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Install dependencies (CPU torch)
+        run: |
+          pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
 
       - name: Run weather report
         env:
           AMAP_KEY: ${{ secrets.AMAP_KEY }}
-          BAIDU_API_KEY: ${{ secrets.BAIDU_API_KEY }}
-          BAIDU_SECRET_KEY: ${{ secrets.BAIDU_SECRET_KEY }}
+          HF_HUB_DOWNLOAD_TIMEOUT: '120'
         run: python scripts/main.py
 
       - name: Commit site update

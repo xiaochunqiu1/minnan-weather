@@ -1,1 +1,9 @@
-requests>=2.31
+requests
+numpy
+scipy
+soundfile
+# TTS：Meta MMS 本地模型（facebok/mms-tts-nan），CPU 推理
+torch
+transformers
+accelerate
+huggingface_hub
