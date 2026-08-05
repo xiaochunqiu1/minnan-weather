@@ -1,0 +1,13 @@
+{
+  "name": "天气",
+  "short_name": "天气",
+  "description": "崇武镇闽南语天气预报",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#7ec8f7",
+  "theme_color": "#4A90D9",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
