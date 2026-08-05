@@ -1,75 +1,81 @@
 # 崇武镇闽南语语音天气预报
 
-每天北京时间 19:00 自动生成次日闽南语天气预报，老人晚 8 点后点击手机桌面「天气」图标 → 点大喇叭即可收听。零费用、零日常人工操作。
+每天北京时间 19:00 自动生成次日闽南语天气预报，老人晚 8 点后点手机桌面「天气」图标 → 点大喇叭即可收听。全程零费用、零日常人工操作、纯云端运行（电脑无需开机）。
 
-## 一次注册（约半天）
+## 在线地址（现役）
 
-### 1. GitHub 注册与建仓库
-1. 访问 https://github.com 注册账号
-2. 右上角「+」→「New repository」→ 名称如 `minnan-weather` → 选 Public（私有也可）→ 不勾 README → Create
-3. 把本仓库代码 push 到该 GitHub 仓库
+https://qzmj-d8ge0bj5g9257711b-1463592371.tcloudbaseapp.com/weather/
 
-### 2. EdgeOne Pages 绑定（固定链接 + PWA 托管）
-1. 访问 https://edgeone.ai/ → 用 GitHub 登录
-2. Pages → 「Import a project」→ 选刚才建的仓库
-3. 输出目录填 `site`，记下分配的域名 `xxx.edgeone.app`
-4. 先手动 push 一次 `site/index.html` 占位文件，验证 EdgeOne 能自动部署（URL 直接打开看到页面）
+- 托管：腾讯云 CloudBase 免费体验版静态托管（部署在 `/weather` 子路径，复用 qzmj 环境，不覆盖原项目）
+- 环境到期 2027-02-05，到期在控制台免费续期
+- PWA 支持：手机浏览器打开后「添加到主屏幕」，桌面出现太阳云朵图标，全屏独立打开
 
-### 3. 百度智能云：获取 TTS 闽南语发音人
-> **关键步骤**：必须当天先试调一次接口，确认「度阿闽」在免费额度内。
-1. 访问 https://cloud.baidu.com → 注册 → 个人实名认证
-2. 控制台 → 短文本在线合成 → **免费测试资源**领取 → **确认额度覆盖大模型音库**
-3. 创建应用（语音技术）→ 拿到 **API Key** 和 **Secret Key**
+## 架构
 
-### 4. 高德开放平台：获取天气 Key
-1. 访问 https://lbs.amap.com → 注册个人开发者
-2. 应用管理 → 创建新应用 → 类型「Web 服务」→ 拿到 **Key**
+```
+GitHub Actions (cron UTC 11:00 = 北京 19:00)
+  → 高德天气 API 取惠安县次日预报
+  → 生成台罗拼音分段文案（scripts/copywriter.py）
+  → Meta MMS-TTS 闽南语模型合成语音（facebook/mms-tts-nan，本地 CPU）
+  → 程序合成钢琴琶音背景乐 + 混音（scripts/audio_mix.py）
+  → 渲染 site/index.html + latest.json（scripts/site_builder.py）
+  → tcb hosting deploy ./site /weather → CloudBase 静态托管
+```
 
-### 5. 仓库 Secrets 配置
-仓库页面 → Settings → Secrets and variables → Actions → New repository secret：
-| Secret 名 | 值 |
+## Secrets（GitHub 仓库 Actions）
+
+| Secret | 说明 |
 |---|---|
-| `BAIDU_API_KEY` | 百度 API Key |
-| `BAIDU_SECRET_KEY` | 百度 Secret Key |
-| `AMAP_KEY` | 高德 Key |
-
-### 6. 老人手机配置
-1. 浏览器（建议系统自带浏览器）打开 `https://xxx.edgeone.app/`
-2. 点击浏览器底部「分享/...」→「添加到主屏幕」
-3. 桌面上会出现「天气」图标（太阳+云朵图案）
-4. 教老人两步：**点桌面图标 → 点屏幕中间的大喇叭**
-
-## 故障告警
-云端任务任一步失败 → GitHub 自动邮件通知仓库主（默认开启，Settings → Notifications 确认）。
+| `AMAP_KEY` | 高德 Web 服务 Key（天气数据） |
+| `TCB_SECRET_ID` | 腾讯云 CAM API 密钥 SecretId |
+| `TCB_SECRET_KEY` | 腾讯云 CAM API 密钥 SecretKey |
+| `TCB_ENV_ID` | CloudBase 环境 ID（`qzmj-d8ge0bj5g9257711b`） |
 
 ## 本地开发
+
 ```bash
 pip install -r requirements.txt
-# 需要先 export 三个 Key
+# 需要先 export AMAP_KEY
 python scripts/main.py
+# 部署（可选）：
+# npm i -g @cloudbase/cli && tcb login --apiKeyId <SecretId> --apiKey <SecretKey>
+# tcb hosting deploy ./site /weather -e <TCB_ENV_ID>
 ```
 
 ## 调整文案
-所有闽南语文案集中在 `scripts/copywriter.py`，会闽南语的家人可反复试听 `site/audio/` 下生成的 mp3，按需微调模板。
+
+所有闽南语发音集中在 `scripts/copywriter.py`（台罗词表 + 标点碎片化），想改某个词直接改对应台罗拼音。生成音频在 `site/audio/`。
 
 ## 项目结构
+
 ```
-.github/workflows/daily-weather.yml   # 定时任务（UTC 11:00 = 北京 19:00）
+.github/workflows/daily-weather.yml   # 定时任务（UTC 11:00 = 北京 19:00）+ push 触发 + 防循环
 scripts/
-  main.py                              # 主流程编排
-  weather.py                           # 高德天气
-  copywriter.py                        # 闽南语文案模板
-  tts_baidu.py                         # 百度 TTS 度阿闽
-  site_builder.py                      # 渲染播放页
-templates/player.html                  # 播放页模板
-site/                                  # EdgeOne 部署目录
+  main.py                             # 主流程编排
+  weather.py                          # 高德天气 API
+  copywriter.py                       # 台罗拼音文案（词表 + 标点级停顿）
+  tts_mms.py                          # Meta MMS-TTS 本地推理（真闽南语）
+  audio_mix.py                        # 钢琴琶音背景乐合成 + 混音
+  site_builder.py                     # 渲染播放页 + latest.json
+  tts_baidu.py                        # [废弃] 百度 TTS（度阿闽=闽南腔普通话，已弃用）
+templates/player.html                 # 播放页模板（PWA + SW）
+site/                                 # CloudBase 部署目录（tcb hosting deploy 推送）
   index.html (生成)
-  manifest.webmanifest                 # PWA 桌面图标
-  sw.js                                # Service Worker
-  icon.png                             # 太阳+云朵图标
+  manifest.webmanifest                # PWA 桌面图标
+  sw.js                               # Service Worker
+  icon.png                            # 太阳+云朵图标
   latest.json (生成)
-  audio/YYYY-MM-DD.mp3 (生成)
-  stats.json (生成, 用量台账)
-tools/make_icon.py                     # 图标生成脚本
-```trigger push 120947
-trigger cloudbase deploy 201551
+  audio/YYYY-MM-DD.wav (生成)
+tools/                                # 一次性工具（图标生成、调试等）
+```
+
+## 故障告警
+
+云端任务任一步失败 → GitHub 自动邮件通知仓库主（Settings → Notifications 确认）。
+
+## 方案历史（为什么是现在这套）
+
+- 百度方言发音人（度阿闽/度小台/台媒女声）= 普通话+腔调，不是真闽南语 → 弃
+- EdgeOne Pages = 默认域名 3 小时过期 → 弃
+- 腾讯云 COS 静态托管 = 2024 政策新桶默认域名强制下载（需备案域名）→ 弃
+- **CloudBase 免费体验版 = 唯一满足 零费用+国内快+浏览器正常渲染+永久域名 的方案** → 现役

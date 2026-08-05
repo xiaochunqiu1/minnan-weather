@@ -2,10 +2,8 @@ requests
 numpy
 scipy
 soundfile
-# TTS：Meta MMS 本地模型（facebok/mms-tts-nan），CPU 推理
+# TTS：Meta MMS 本地模型（facebook/mms-tts-nan），CPU 推理
 torch
 transformers
 accelerate
 huggingface_hub
-# COS 部署：上传到腾讯云 COS 静态网站托管
-cos-python-sdk-v5

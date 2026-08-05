@@ -7,15 +7,14 @@ Thumbs.db
 
 # 模型（Actions 运行时自动下载，不入库）
 models/
-# TTS 中间文件（不入库）
-site/audio/*.raw.wav
+# CloudBase 静态托管用 CLI 直接部署 site/，音频等生成物不入库
+site/audio/
+site/latest.json
+site/index.html
 
 # 临时音频（根目录及 tools 的测试音频不入库）
 *.wav
 *.mp3
-# 但 site/audio/ 下的最终播报音频必须入库（EdgeOne 部署用）
-!site/audio/
-!site/audio/*.wav
 freepd_home.html
 hf_meta.json
 exp_*.wav
