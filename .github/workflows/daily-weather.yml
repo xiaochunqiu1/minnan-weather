@@ -47,4 +47,4 @@ jobs:
         run: |
           npm install -g @cloudbase/cli
           tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
-          tcb hosting deploy ./site -e "$TCB_ENV_ID"
+          tcb hosting deploy ./site /weather -e "$TCB_ENV_ID"
