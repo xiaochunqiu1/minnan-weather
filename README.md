@@ -72,3 +72,4 @@ site/                                  # EdgeOne 部署目录
   stats.json (生成, 用量台账)
 tools/make_icon.py                     # 图标生成脚本
 ```trigger push 120947
+trigger cloudbase deploy 201551
