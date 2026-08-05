@@ -103,6 +103,11 @@ document.addEventListener('click', function once(){
 // 自动播放尝试（部分浏览器允许）
 setTimeout(function(){ tryPlay(); }, 800);
 
+// 注册 Service Worker（PWA 离线壳 + 安装提示）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function(){ /* 静默失败，不影响播放 */ });
+}
+
 load();
 </script>
 </body>

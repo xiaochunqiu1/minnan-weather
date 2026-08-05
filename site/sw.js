@@ -16,8 +16,8 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
-  // 动态内容始终走网络
-  if (url.pathname.indexOf('latest.json') >= 0 || /\.mp3(\?|$)/.test(url.pathname)) {
+  // 动态内容始终走网络（latest.json 与 .wav 音频永不走缓存，保证最新）
+  if (url.pathname.indexOf('latest.json') >= 0 || /\.wav(\?|$)/.test(url.pathname)) {
     return;
   }
   e.respondWith(
