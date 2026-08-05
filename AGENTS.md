@@ -17,11 +17,12 @@ Python（高德天气 API + Meta MMS-TTS `facebook/mms-tts-nan` + scipy/soundfil
 - `scripts/`：主流程（main.py 编排；copywriter.py 台罗文案词表；tts_mms.py 真闽南语合成；audio_mix.py 背景乐；site_builder.py 渲染）
 - `templates/player.html`：播放页模板（PWA）
 - `site/`：部署产物（tcb hosting deploy 推送，不入库音频之外的中间文件）
-- `tools/`：一次性工具
-- 废弃文件：`scripts/tts_baidu.py`（百度=闽南腔普通话，弃）、`scripts/cos_upload.py`（COS 2024 政策强制下载，弃）
+- `tools/`：一次性工具（check_log.py 的 token 必须从环境变量 GITHUB_TOKEN 读，禁止硬编码）
 
 ## 当前状态
 - ✅ 已上线：https://qzmj-d8ge0bj5g9257711b-1463592371.tcloudbaseapp.com/weather/
+- GitHub 仓库：`xiaochunqiu1/minnan-weather`（已从旧名 `-` 改名，旧链接自动跳转）
 - Secrets：AMAP_KEY / TCB_SECRET_ID / TCB_SECRET_KEY / TCB_ENV_ID
 - 环境到期 2027-02-05，需免费续期
 - 文案发音改 `scripts/copywriter.py` 的台罗词表
+- **约定（用户 2026-08-05 明确）**：GitHub token 不重建、不轮换（用户接受现状）；如遇到 push protection 拦截，说明代码含密钥，先清密钥再用 .netrc 认证推送，不要反复建议用户重建 token

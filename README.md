@@ -18,6 +18,8 @@
 
 每天北京时间 19:00 自动生成次日闽南语天气预报，老人晚 8 点后点手机桌面「天气」图标 → 点大喇叭即可收听。全程零费用、零日常人工操作、纯云端运行（电脑无需开机）。
 
+**源代码**：https://github.com/xiaochunqiu1/minnan-weather （开源，可自由查看/学习/复用）
+
 ## 在线地址（现役）
 
 https://qzmj-d8ge0bj5g9257711b-1463592371.tcloudbaseapp.com/weather/
