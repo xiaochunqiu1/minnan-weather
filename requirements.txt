@@ -7,3 +7,5 @@ torch
 transformers
 accelerate
 huggingface_hub
+# 部署：COS SDK 直传 CloudBase 静态托管底层 bucket（比 tcb CLI 稳定，防超时）
+cos-python-sdk-v5
