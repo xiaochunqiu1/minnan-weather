@@ -41,5 +41,6 @@ jobs:
           COS_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
           COS_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
         run: |
+          echo "DEBUG: SECRET_ID len=${#COS_SECRET_ID} KEY len=${#COS_SECRET_KEY}"
           rm -f site/audio/*.raw.wav  # 清理 TTS 中间文件
           python scripts/cos_deploy.py site/
