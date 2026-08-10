@@ -74,16 +74,16 @@ scripts/
   copywriter.py                       # 台罗拼音文案（词表 + 标点级停顿）
   tts_mms.py                          # Meta MMS-TTS 本地推理（真闽南语）
   audio_mix.py                        # 钢琴琶音背景乐合成 + 混音
+  cos_deploy.py                       # COS SDK 直传 CloudBase 静态托管（分块上传防超时）
   site_builder.py                     # 渲染播放页 + latest.json
-  tts_baidu.py                        # [废弃] 百度 TTS（度阿闽=闽南腔普通话，已弃用）
 templates/player.html                 # 播放页模板（PWA + SW）
-site/                                 # CloudBase 部署目录（tcb hosting deploy 推送）
+site/                                 # CloudBase 部署目录（cos_deploy.py 推送）
   index.html (生成)
   manifest.webmanifest                # PWA 桌面图标
   sw.js                               # Service Worker
   icon.png                            # 太阳+云朵图标
   latest.json (生成)
-  audio/YYYY-MM-DD.wav (生成)
+  audio/YYYY-MM-DD.mp3 (生成)         # wav 经 workflow ffmpeg 压成 mp3（~316KB，跨境稳定）
 tools/                                # 一次性工具（图标生成、调试等）
 ```
 
@@ -97,3 +97,4 @@ tools/                                # 一次性工具（图标生成、调试�
 - EdgeOne Pages = 默认域名 3 小时过期 → 弃
 - 腾讯云 COS 静态托管 = 2024 政策新桶默认域名强制下载（需备案域名）→ 弃
 - **CloudBase 免费体验版 = 唯一满足 零费用+国内快+浏览器正常渲染+永久域名 的方案** → 现役
+- 部署方式：tcb CLI（海外超时）→ **COS SDK 分块上传 + 音频转 MP3**（治跨境超时，现役）

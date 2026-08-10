@@ -8,21 +8,23 @@
 pip install -r requirements.txt
 AMAP_KEY=<高德Key> python scripts/main.py   # 生成 site/ 内容（天气→台罗文案→MMS TTS→混音→渲染）
 ```
-云端由 `.github/workflows/daily-weather.yml` 定时跑（UTC 11:00 = 北京 19:00），部署：`tcb hosting deploy ./site /weather -e <TCB_ENV_ID>`。
+云端由 `.github/workflows/daily-weather.yml` 定时跑（UTC 11:00 = 北京 19:00）：
+1. main.py 生成 wav → 2. workflow 用 ffmpeg 压成 mp3（~316KB）→ 3. `python scripts/cos_deploy.py site/` 用 COS SDK 分块上传（跨境稳定）。
 
 ## 技术栈
-Python（高德天气 API + Meta MMS-TTS `facebook/mms-tts-nan` + scipy/soundfile 音频混音）· GitHub Actions · 腾讯云 CloudBase 静态托管（免费体验版）
+Python（高德天气 API + Meta MMS-TTS `facebook/mms-tts-nan` + scipy/soundfile 音频混音）· GitHub Actions · 腾讯云 CloudBase 静态托管（免费体验版，底层 COS bucket）
 
 ## 目录约定
-- `scripts/`：主流程（main.py 编排；copywriter.py 台罗文案词表；tts_mms.py 真闽南语合成；audio_mix.py 背景乐；site_builder.py 渲染）
+- `scripts/`：主流程（main.py 编排；copywriter.py 台罗文案词表；tts_mms.py 真闽南语合成；audio_mix.py 背景乐；cos_deploy.py COS SDK 部署；site_builder.py 渲染）
 - `templates/player.html`：播放页模板（PWA）
-- `site/`：部署产物（tcb hosting deploy 推送，不入库音频之外的中间文件）
+- `site/`：部署产物（cos_deploy.py 推送；音频为 mp3，不入库）
 - `tools/`：一次性工具（check_log.py 的 token 必须从环境变量 GITHUB_TOKEN 读，禁止硬编码）
 
 ## 当前状态
 - ✅ 已上线：https://qzmj-d8ge0bj5g9257711b-1463592371.tcloudbaseapp.com/weather/
 - GitHub 仓库：`xiaochunqiu1/minnan-weather`（已从旧名 `-` 改名，旧链接自动跳转）
-- Secrets：AMAP_KEY / TCB_SECRET_ID / TCB_SECRET_KEY / TCB_ENV_ID
+- Secrets：AMAP_KEY / TCB_SECRET_ID / TCB_SECRET_KEY / TCB_ENV_ID（COS_SECRET_ID/KEY 复用 TCB_* 值）
 - 环境到期 2027-02-05，需免费续期
-- 文案发音改 `scripts/copywriter.py` 的台罗词表
-- **约定（用户 2026-08-05 明确）**：GitHub token 不重建、不轮换（用户接受现状）；如遇到 push protection 拦截，说明代码含密钥，先清密钥再用 .netrc 认证推送，不要反复建议用户重建 token
+- 文案发音改 `scripts/copywriter.py` 的台罗词表；嘱咐语已结合天气（雨天带伞/晴天日头/阴天热/冷添衣/风大防风）
+- **约定（用户 2026-08-05 明确）**：GitHub token 不重建、不轮换（用户接受现状）；如遇到 push protection 拦截，说明代码含密钥，先清密钥再推送，不要反复建议用户重建 token
+- **推送技巧**：本机 `credential.helper=helper-selector` 会导致 `git push` 无输出失败，需 `git -c credential.helper= push <完整URL> main:main`
