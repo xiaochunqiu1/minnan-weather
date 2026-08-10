@@ -52,6 +52,7 @@ def _content_type(name):
         ".png": "image/png",
         ".svg": "image/svg+xml",
         ".wav": "audio/wav",
+        ".mp3": "audio/mpeg",
         ".webmanifest": "application/manifest+json",
     }.get(os.path.splitext(name)[1].lower(), "application/octet-stream")
 

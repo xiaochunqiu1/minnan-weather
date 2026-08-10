@@ -35,6 +35,19 @@ jobs:
           HF_HUB_DOWNLOAD_TIMEOUT: '120'
         run: python scripts/main.py
 
+      - name: Compress audio to MP3 (减小跨境传输体积)
+        run: |
+          cd site/audio
+          for f in *.wav; do
+            [ -e "$f" ] || continue
+            ffmpeg -y -i "$f" -codec:a libmp3lame -b:a 64k "${f%.wav}.mp3" -loglevel error
+            rm -f "$f"
+          done
+          cd ../..
+          # latest.json 音频引用改为 .mp3
+          python -c "import json; p='site/latest.json'; d=json.load(open(p)); d['audio']=d['audio'].replace('.wav','.mp3'); json.dump(d, open(p,'w'), ensure_ascii=False, indent=2)"
+          ls -la site/audio/
+
       - name: Deploy to CloudBase via COS SDK (分块上传, 跨境稳定)
         timeout-minutes: 10
         env:

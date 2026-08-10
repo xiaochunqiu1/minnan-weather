@@ -53,7 +53,7 @@ def main():
     except OSError:
         pass
 
-    # 6. 渲染站点
+    # 6. 渲染站点（latest.json 指向 wav；云端 workflow 会再转 mp3 并改写引用）
     site_builder.build(summary, tomorrow, f"audio/{tomorrow.isoformat()}.wav")
     print("完成。")
     print("=" * 40)
