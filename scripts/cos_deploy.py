@@ -30,9 +30,14 @@ def upload_dir(local_dir, prefix="weather"):
             local = os.path.join(root, name)
             rel = os.path.relpath(local, local_dir).replace("\\", "/")
             key = f"{prefix}/{rel}" if prefix else rel
-            with open(local, "rb") as f:
-                cli.put_object(Bucket=BUCKET, Body=f.read(), Key=key,
-                               ContentType=_content_type(name))
+            # 大文件（>1MB，如音频）用分块上传（断点续传，跨境稳定）；小文件直传
+            if os.path.getsize(local) > 1024 * 1024:
+                cli.upload_file(Bucket=BUCKET, LocalFilePath=local, Key=key,
+                                PartSize=1, MAXThread=5, EnableMD5=False)
+            else:
+                with open(local, "rb") as f:
+                    cli.put_object(Bucket=BUCKET, Body=f.read(), Key=key,
+                                   ContentType=_content_type(name))
             n += 1
             print(f"  ↑ {key}")
     print(f"上传完成: {n} 个文件")
