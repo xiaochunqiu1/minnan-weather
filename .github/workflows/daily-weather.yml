@@ -40,6 +40,7 @@ jobs:
           node-version: '22'
 
       - name: Deploy to CloudBase static hosting
+        timeout-minutes: 15
         env:
           TCB_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
           TCB_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
@@ -47,4 +48,16 @@ jobs:
         run: |
           npm install -g @cloudbase/cli
           tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
-          tcb hosting deploy ./site /weather -e "$TCB_ENV_ID"
+          rm -f site/audio/*.raw.wav  # 清理 TTS 中间文件（双保险）
+          # 先传音频（大文件，最易超时；失败时 latest.json 仍指旧音频，页面可播昨天的）
+          for i in 1 2 3; do
+            tcb hosting deploy ./site/audio /weather/audio -e "$TCB_ENV_ID" && break
+            echo "audio deploy attempt $i failed, retrying in 15s..."; sleep 15
+            [ $i -eq 3 ] && exit 1
+          done
+          # 再传其余（latest.json 最后更新，避免"文案新但音频缺失"的半部署状态）
+          for i in 1 2 3; do
+            tcb hosting deploy ./site /weather -e "$TCB_ENV_ID" && break
+            echo "site deploy attempt $i failed, retrying in 15s..."; sleep 15
+            [ $i -eq 3 ] && exit 1
+          done
