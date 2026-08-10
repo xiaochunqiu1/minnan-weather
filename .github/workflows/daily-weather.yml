@@ -37,16 +37,19 @@ jobs:
 
       - name: Compress audio to MP3 (减小跨境传输体积)
         run: |
+          set -e
+          echo "ffmpeg check:"; which ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          ffmpeg -version | head -1
           cd site/audio
           for f in *.wav; do
             [ -e "$f" ] || continue
-            ffmpeg -y -i "$f" -codec:a libmp3lame -b:a 64k "${f%.wav}.mp3" -loglevel error
+            echo "converting $f ..."
+            ffmpeg -y -i "$f" -codec:a libmp3lame -b:a 64k "${f%.wav}.mp3"
             rm -f "$f"
           done
           cd ../..
-          # latest.json 音频引用改为 .mp3
-          python -c "import json; p='site/latest.json'; d=json.load(open(p)); d['audio']=d['audio'].replace('.wav','.mp3'); json.dump(d, open(p,'w'), ensure_ascii=False, indent=2)"
-          ls -la site/audio/
+          python3 -c "import json; p='site/latest.json'; d=json.load(open(p)); d['audio']=d['audio'].replace('.wav','.mp3'); json.dump(d, open(p,'w'), ensure_ascii=False, indent=2)"
+          echo "after compress:"; ls -la site/audio/
 
       - name: Deploy to CloudBase via COS SDK (分块上传, 跨境稳定)
         timeout-minutes: 10
