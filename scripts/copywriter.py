@@ -158,8 +158,13 @@ def build_report(fc: dict, forecast_date: datetime.date) -> tuple:
         sentences.append(f"{TOMORROW} ē lo̍h-hōo, tshut-mn̂g kì--tit tòa hōo-sòaⁿ.")
     if wind_max >= 5:
         sentences.append("Hái-kîⁿ thàu-hong tsin tuā, saⁿ tshīng kāu--leh, mn̂g-thang kuainn hó.")
-    if high >= 33:
-        sentences.append("Ji̍t-thâu tsin iām, sió tshut-mn̂g, tsi̍h tsuí.")
+    # 高温提醒须结合天气现象：晴天说"日头大"，非晴天（阴/多云无雨）说"天气热"，有雨则不说太阳
+    has_rain = _is_rain(day_weather) or _is_rain(night_weather)
+    if high >= 33 and not has_rain:
+        if "晴" in day_weather:
+            sentences.append("Ji̍t-thâu tsin iām, sió tshut-mn̂g, tsi̍h tsuí.")
+        else:
+            sentences.append("Thiⁿ-khì tsin jua̍h, sió tshut-mn̂g, tsi̍h tsuí.")
     if low <= 12:
         sentences.append("Thiⁿ-khì kuânn, saⁿ ke tsi̍t niá, mài siū-kuânn.")
     sentences.append(f"Hó--ah, {TOMORROW} tshut-mn̂g tsù-ì, pîng-an sūn-suī.")
