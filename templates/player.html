@@ -68,20 +68,35 @@
 var au = document.getElementById('au');
 var btn = document.getElementById('btn');
 
-// 加载最新数据，按北京时间 19 点分界选播（版本二，2026-10-03 用户确认）：
+// 按日期选播（A 方案，2026-10-03 用户确认）：云端两份预报各带明确日期，
+// 播放器按 UTC+8 算出"今天/明天"的日期，直接按日期匹配音频——
+// 不认 today/tomorrow 槽位标签（任务午夜前/后完成导致槽位内容与日期错位时照样找得到）。
 // <19 点播今天（老人白天听当天的），≥19 点播明天（老人晚上 20 点听次日的）。
-// 判断用老人手机的本地时钟（UTC+8 固定计算），与 GitHub 任务几点跑无关。
+// 目标日期缺失时（当天任务尚未跑/失败）退而播日期最近的过去预报（音频开头报日期，可听出）。
 function load() {
   fetch('latest.json?_=' + Date.now()).then(function(r){ return r.json(); }).then(function(j){
-    // 北京时间（UTC+8）的小时数
-    var bjHour = (new Date().getUTCHours() + 8) % 24;
-    var entry;
-    if (bjHour >= 19) {
-      // 晚上播明天；万一明天的数据缺失（当天任务尚未跑过），退而播今天（有得听总比没有强，音频开头会报日期）
-      entry = j.tomorrow || j.today || j;
-    } else {
-      // 白天播今天；万一今天的数据缺失，退而播明天
-      entry = j.today || j.tomorrow || j;
+    // 北京时间：当前时刻 +8 小时后取 UTC 字段，不依赖手机时区设置
+    var t = new Date(Date.now() + 8 * 3600 * 1000);
+    var pad = function(n){ return (n < 10 ? '0' : '') + n; };
+    var iso = function(d){ return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); };
+    var today = iso(t);
+    var tomorrow = iso(new Date(t.getTime() + 86400000));
+    var want = t.getUTCHours() >= 19 ? tomorrow : today;
+
+    // 候选：today 槽、tomorrow 槽、顶层兼容字段（旧结构），均带 date
+    var entries = [j.today, j.tomorrow, (j && j.date) ? j : null].filter(Boolean);
+    var entry = null;
+    // 1) 精确匹配目标日期
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].date === want) { entry = entries[i]; break; }
+    }
+    // 2) 兜底：播日期最近的过去预报
+    if (!entry) {
+      entries.sort(function(a, b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].date <= want) { entry = entries[i]; break; }
+      }
+      if (!entry) entry = entries[entries.length - 1];
     }
     document.getElementById('date').textContent = entry.summary.split('崇武')[0].trim();
     document.getElementById('summary').textContent = entry.summary;
