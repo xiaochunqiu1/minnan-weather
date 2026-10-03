@@ -28,3 +28,6 @@ Python（高德天气 API + Meta MMS-TTS `facebook/mms-tts-nan` + scipy/soundfil
 - 文案发音改 `scripts/copywriter.py` 的台罗词表；嘱咐语已结合天气（雨天带伞/晴天日头/阴天热/冷添衣/风大防风）
 - **约定（用户 2026-08-05 明确）**：GitHub token 不重建、不轮换（用户接受现状）；如遇到 push protection 拦截，说明代码含密钥，先清密钥再推送，不要反复建议用户重建 token
 - **推送技巧**：本机 `credential.helper=helper-selector` 会导致 `git push` 无输出失败，需 `git -c credential.helper= push <完整URL> main:main`
+- **推送兜底（2026-10-03 验证）**：git 通道故障（本地代理 502 / 直连超时）时，用 gh CLI 走 Contents API 直传文件（api.github.com 可直连）：`gh api --method PUT repos/xiaochunqiu1/minnan-weather/contents/<路径> -f message="..." -f sha=<GET 拿到的当前 sha> -f content="$(base64 -w0 <文件>)"`；注意本机环境变量里的代理（HTTPS_PROXY=127.0.0.1:xxxx）会让 gh 也失败，命令前要清空 `HTTPS_PROXY= HTTP_PROXY= https_proxy= http_proxy=`
+- **keepalive 保活（2026-10-03 加）**：GitHub 规定仓库 60 天无 commit 会自动禁用定时 workflow；COS 直传部署不产生 commit，故 `cos_deploy.py` 的 keepalive() 在每次 Actions 部署后检查距最后 commit 天数，≥45 天自动 push 空 commit（message 以 "weather update" 开头，复用 daily-weather.yml 防循环条件；push 失败只警告不报错，下次运行自动重试）。端到端已验证（run 37097533628/37097685514）
+- **本机 git 凭据 scope 限制**：本机所有凭据（GCM OAuth / gh token）都无 `workflow` 权限，**不能 push 涉及 `.github/workflows/` 文件改动的 commit**（会报 "refusing to allow an OAuth App..."）；改 workflow 文件需用户在网页 UI 操作或换有 workflow scope 的 token
