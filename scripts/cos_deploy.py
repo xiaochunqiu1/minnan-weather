@@ -44,7 +44,7 @@ def upload_dir(local_dir, prefix="weather"):
     return n
 
 
-def keepalive(days_threshold=0):
+def keepalive(days_threshold=45):
     """距仓库最后一次 commit 超过阈值天数时，push 一个空 commit。
 
     背景（2026-10-03 教训）：GitHub 规定仓库 60 天无 commit 活动会自动禁用
@@ -64,15 +64,21 @@ def keepalive(days_threshold=0):
     if days < days_threshold:
         return
     print(f"距最后 commit 已 {days} 天（阈值 {days_threshold}），push 保活 commit...")
-    for args in (
-        ["git", "config", "user.name", "weather-bot"],
-        ["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"],
-        ["git", "commit", "--allow-empty",
-         "-m", "weather update keepalive (prevent scheduled workflow auto-disable)"],
-        ["git", "push"],
-    ):
-        subprocess.run(args, check=True)
-    print("保活 commit 已推送")
+    try:
+        for args in (
+            ["git", "config", "user.name", "weather-bot"],
+            ["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"],
+            ["git", "commit", "--allow-empty",
+             "-m", "weather update keepalive (prevent scheduled workflow auto-disable)"],
+            ["git", "push"],
+        ):
+            subprocess.run(args, check=True)
+        print("保活 commit 已推送")
+    except subprocess.CalledProcessError as e:
+        # 部署已成功，保活失败不应让整个 run 报错（例如并发 run 同时保活的
+        # non-fast-forward 冲突）；run 报错会触发 GitHub 失败邮件，无谓打扰。
+        # 下次运行时距最后 commit 仍超阈值，会自动重试。
+        print(f"⚠️ 保活 push 未成功（{e}），不影响本次部署；下次运行会自动重试")
 
 
 def _content_type(name):
