@@ -3,7 +3,7 @@ name: daily-minnan-weather
 on:
   schedule:
     # UTC 11:00 = 北京时间 19:00，确保 20:00 老人打开时已是最新内容
-    - cron: '0 11 * * *'
+    - cron: '13 16 * * *'
   workflow_dispatch:
   push:
     branches: [main]
