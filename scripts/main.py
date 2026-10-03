@@ -20,23 +20,16 @@ BEIJING_TZ = datetime.timezone(datetime.timedelta(hours=8))
 
 
 def main():
-    # 1. 计算预报日期（北京时间，固定 +8）
-    # 规则：按"北京时间 19 点分界"判断，不依赖任务实际几点跑 ——
-    #   19 点前跑（白天手动补跑 / cron 延迟到凌晨前的场景）→ 生成当天预报，
-    #   保证老人白天听到的是"今天"；19 点及以后（含 GitHub cron 延迟到
-    #   凌晨 0-2 点的补跑，那时仍算"前一天 19 点后"）→ 生成次日预报。
-    # 背景：GitHub Actions 共享调度器高峰期常延迟数小时，cron '0 11 * * *'
-    #   实测多次拖到北京凌晨才跑，旧的"无条件今天+1"会多跳一天。
-    now_bj = datetime.datetime.now(BEIJING_TZ)
-    target_date = now_bj.date() if now_bj.hour < 19 else now_bj.date() + datetime.timedelta(days=1)
-    print(f"[1/4] 预报日期: {target_date}（当前北京时间 {now_bj.strftime('%H:%M')}）")
+    # 1. 计算"明天"（北京时间，固定 +8）
+    tomorrow = datetime.datetime.now(BEIJING_TZ).date() + datetime.timedelta(days=1)
+    print(f"[1/4] 预报日期: {tomorrow}")
 
     # 2. 天气
-    fc = weather_mod.get_forecast(target_date.isoformat())
+    fc = weather_mod.get_forecast(tomorrow.isoformat())
     print(f"[2/4] 天气: {fc}")
 
     # 3. 文案（台罗分段）
-    segments, summary = copywriter.build_report(fc, target_date)
+    segments, summary = copywriter.build_report(fc, tomorrow)
     print(f"[3/4] 台罗分段:")
     for s in segments:
         print(f"      - {s}")
@@ -45,14 +38,14 @@ def main():
     # 4. TTS（Meta MMS 本地模型，输出 wav）
     wav_dir = os.path.join(site_builder.SITE_DIR, "audio")
     os.makedirs(wav_dir, exist_ok=True)
-    raw_path = os.path.join(wav_dir, f"{target_date.isoformat()}.raw.wav")
+    raw_path = os.path.join(wav_dir, f"{tomorrow.isoformat()}.raw.wav")
     dur = tts_mms.synthesize(segments, raw_path)
     print(f"[4/5] 语音合成: {raw_path} (时长 {dur:.1f}s)")
     if not os.path.exists(raw_path) or os.path.getsize(raw_path) < 10000:
         raise RuntimeError("生成的 wav 异常（文件过小）")
 
     # 5. 混入背景乐（轻声 → 结尾渐强 → 渐弱收尾）
-    wav_path = os.path.join(wav_dir, f"{target_date.isoformat()}.wav")
+    wav_path = os.path.join(wav_dir, f"{tomorrow.isoformat()}.wav")
     dur_mixed = audio_mix.mix(raw_path, wav_path)
     print(f"[5/5] 混音完成: {wav_path} (时长 {dur_mixed:.1f}s)")
     try:
@@ -61,7 +54,7 @@ def main():
         pass
 
     # 6. 渲染站点（latest.json 指向 wav；云端 workflow 会再转 mp3 并改写引用）
-    site_builder.build(summary, target_date, f"audio/{target_date.isoformat()}.wav")
+    site_builder.build(summary, tomorrow, f"audio/{tomorrow.isoformat()}.wav")
     print("完成。")
     print("=" * 40)
     print(summary)
