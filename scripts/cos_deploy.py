@@ -44,6 +44,37 @@ def upload_dir(local_dir, prefix="weather"):
     return n
 
 
+def keepalive(days_threshold=45):
+    """距仓库最后一次 commit 超过阈值天数时，push 一个空 commit。
+
+    背景（2026-10-03 教训）：GitHub 规定仓库 60 天无 commit 活动会自动禁用
+    定时 workflow。改用 COS 直传后每日播报不再产生 commit，仓库活动必须
+    由本函数显式维持。仅在 GitHub Actions 环境运行（本地跳过）。
+
+    注意：commit message 必须以 "weather update" 开头 —— daily-weather.yml
+    的防循环条件会跳过该类 commit 触发的 push 事件，避免无限递归运行。
+    """
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        return
+    import subprocess
+    import datetime
+    last = subprocess.run(["git", "log", "-1", "--format=%cI"],
+                         capture_output=True, text=True, check=True).stdout.strip()
+    days = (datetime.date.today() - datetime.date.fromisoformat(last.split("T")[0])).days
+    if days < days_threshold:
+        return
+    print(f"距最后 commit 已 {days} 天（阈值 {days_threshold}），push 保活 commit...")
+    for args in (
+        ["git", "config", "user.name", "weather-bot"],
+        ["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"],
+        ["git", "commit", "--allow-empty",
+         "-m", "weather update keepalive (prevent scheduled workflow auto-disable)"],
+        ["git", "push"],
+    ):
+        subprocess.run(args, check=True)
+    print("保活 commit 已推送")
+
+
 def _content_type(name):
     return {
         ".html": "text/html; charset=utf-8",
@@ -61,3 +92,4 @@ if __name__ == "__main__":
     src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "site")
     upload_dir(src)
+    keepalive()
