@@ -68,12 +68,25 @@
 var au = document.getElementById('au');
 var btn = document.getElementById('btn');
 
-// 加载当天音频（latest.json 带时间戳防缓存）
+// 加载最新数据，按北京时间 19 点分界选播（版本二，2026-10-03 用户确认）：
+// <19 点播今天（老人白天听当天的），≥19 点播明天（老人晚上 20 点听次日的）。
+// 判断用老人手机的本地时钟（UTC+8 固定计算），与 GitHub 任务几点跑无关。
 function load() {
   fetch('latest.json?_=' + Date.now()).then(function(r){ return r.json(); }).then(function(j){
-    document.getElementById('date').textContent = j.summary.split('崇武')[0].trim();
-    document.getElementById('summary').textContent = j.summary;
-    au.src = j.audio + '?_=' + Date.now();
+    // 北京时间（UTC+8）的小时数
+    var bjHour = (new Date().getUTCHours() + 8) % 24;
+    var entry;
+    if (bjHour >= 19) {
+      // 晚上播明天；万一明天的数据缺失（当天任务尚未跑过），退而播今天（有得听总比没有强，音频开头会报日期）
+      entry = j.tomorrow || j.today || j;
+    } else {
+      // 白天播今天；万一今天的数据缺失，退而播明天
+      entry = j.today || j.tomorrow || j;
+    }
+    document.getElementById('date').textContent = entry.summary.split('崇武')[0].trim();
+    document.getElementById('summary').textContent = entry.summary;
+    // 音频文件名按日期唯一（audio/2026-10-03.mp3），天然无缓存问题，无需时间戳
+    au.src = entry.audio;
   }).catch(function(e){
     document.getElementById('err').textContent = '加载失败，请检查网络后点喇叭重试';
   });

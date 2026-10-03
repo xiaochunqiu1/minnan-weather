@@ -19,6 +19,16 @@ REGION = "ap-shanghai"
 BUCKET = "2eb6-static-qzmj-d8ge0bj5g9257711b-1463592371"
 
 
+def _cache_control(name):
+    """HTML/JSON 每次拉新的（微信安卓内置浏览器不走 Service Worker，必须服务器端禁缓存）；
+    mp3 文件名按日期唯一，可长缓存。"""
+    if name.endswith((".html", ".json", ".webmanifest")):
+        return "no-cache"
+    if name.endswith(".mp3"):
+        return "max-age=86400"
+    return None
+
+
 def upload_dir(local_dir, prefix="weather"):
     cfg = CosConfig(Region=REGION, SecretId=SECRET_ID, SecretKey=SECRET_KEY)
     cli = CosS3Client(cfg)
@@ -30,16 +40,22 @@ def upload_dir(local_dir, prefix="weather"):
             local = os.path.join(root, name)
             rel = os.path.relpath(local, local_dir).replace("\\", "/")
             key = f"{prefix}/{rel}" if prefix else rel
+            cc = _cache_control(name)
             # 大文件（>1MB，如音频）用分块上传（断点续传，跨境稳定）；小文件直传
             if os.path.getsize(local) > 1024 * 1024:
-                cli.upload_file(Bucket=BUCKET, LocalFilePath=local, Key=key,
-                                PartSize=1, MAXThread=5, EnableMD5=False)
+                kw = {"Bucket": BUCKET, "LocalFilePath": local, "Key": key,
+                      "PartSize": 1, "MAXThread": 5, "EnableMD5": False}
+                if cc:
+                    kw["CacheControl"] = cc
+                cli.upload_file(**kw)
             else:
-                with open(local, "rb") as f:
-                    cli.put_object(Bucket=BUCKET, Body=f.read(), Key=key,
-                                   ContentType=_content_type(name))
+                kw = {"Bucket": BUCKET, "Body": open(local, "rb").read(), "Key": key,
+                      "ContentType": _content_type(name)}
+                if cc:
+                    kw["CacheControl"] = cc
+                cli.put_object(**kw)
             n += 1
-            print(f"  ↑ {key}")
+            print(f"  ↑ {key}" + (f" (Cache-Control: {cc})" if cc else ""))
     print(f"上传完成: {n} 个文件")
     return n
 

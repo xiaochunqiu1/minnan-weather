@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
-"""渲染播放页 + 写 latest.json。"""
+"""渲染播放页 + 写 latest.json（版本二：今天+明天双日结构）。
+
+manifest 结构：
+{
+  "date": ..., "audio": ..., "summary": ...,   # 顶层兼容字段（指向明天）：
+                                               # 旧版播放页只认这些，行为与版本一一致
+  "today":     {date, audio, summary},         # 新版播放页 <19 点播这个
+  "tomorrow":  {date, audio, summary},         # 新版播放页 ≥19 点播这个
+  "updated": ...
+}
+"""
 import json
 import os
 import datetime
@@ -9,24 +19,24 @@ SITE_DIR = os.path.join(ROOT, "site")
 TEMPLATE = os.path.join(ROOT, "templates", "player.html")
 
 
-def build(summary: str, forecast_date: datetime.date, audio_file: str):
+def build_days(today_entry, tomorrow_entry):
     os.makedirs(SITE_DIR, exist_ok=True)
 
-    # latest.json（带页面显示日期）
     latest = {
-        "date": forecast_date.isoformat(),
-        "audio": audio_file,          # 相对 site/ 的路径，如 audio/2026-08-04.mp3
-        "summary": summary,
-        "updated": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
+        # 顶层兼容字段（=明天），旧版播放页（无 today/tomorrow 逻辑）读顶层照常工作
+        "date": tomorrow_entry["date"],
+        "audio": tomorrow_entry["audio"],
+        "summary": tomorrow_entry["summary"],
+        # 新版播放页按北京时间 19 点分界自选
+        "today": today_entry,
+        "tomorrow": tomorrow_entry,
+        "updated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
     }
     with open(os.path.join(SITE_DIR, "latest.json"), "w", encoding="utf-8") as f:
         json.dump(latest, f, ensure_ascii=False, indent=2)
 
-    # 渲染播放页
+    # 渲染播放页（页面内容全部由 JS 动态填充，无需模板占位符）
     html = open(TEMPLATE, encoding="utf-8").read()
-    html = html.replace("{{DATE_CN}}", summary.split("崇武")[0].strip())
-    html = html.replace("{{SUMMARY}}", summary)
-    html = html.replace("{{AUDIO}}", audio_file)
     with open(os.path.join(SITE_DIR, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
     return os.path.join(SITE_DIR, "index.html")
