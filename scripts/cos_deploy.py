@@ -44,7 +44,7 @@ def upload_dir(local_dir, prefix="weather"):
     return n
 
 
-def keepalive(days_threshold=45):
+def keepalive(days_threshold=0):
     """距仓库最后一次 commit 超过阈值天数时，push 一个空 commit。
 
     背景（2026-10-03 教训）：GitHub 规定仓库 60 天无 commit 活动会自动禁用
